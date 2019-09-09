@@ -54,7 +54,6 @@ app.use((req, res, next) => {
 });
 
 // Express Validator Middleware
-/*
 app.use(expressValidator({
     errorFormatter: function(param, msg, value) {
         let namespace = param.split('.'),
@@ -70,7 +69,6 @@ app.use(expressValidator({
         };
     }
 }));
-*/
 
 // Home Route
 app.get('/', (req, res) => {
