@@ -5,10 +5,11 @@ const bodyParser = require('body-parser');
 const expressValidator = require('express-validator');
 const flash = require('connect-flash');
 const session = require('express-session');
+const passport = require('passport');
+const dbConfig = require('./config/database');
 
-
-
-mongoose.connect('mongodb://localhost:27017/nefullapp', { useNewUrlParser: true });
+let Article = require('./models/article');
+mongoose.connect(dbConfig.database, { useNewUrlParser: true });
 let db = mongoose.connection;
 
 // Check Connection
@@ -23,9 +24,6 @@ db.on('error', (err) => {
 
 // Init App
 const app = express();
-
-// Bring in Modules
-let Article = require('./models/article');
 
 // Load View Engine
 app.set('views', path.join(__dirname, 'views'));
@@ -47,7 +45,7 @@ app.use(session({
 }));
 
 // Exoress Messages Middleware
-app.use(require('connect-flash')()); 
+app.use(require('connect-flash')());
 app.use((req, res, next) => {
     res.locals.messages = require('express-messages')(req, res);
     next();
@@ -55,11 +53,11 @@ app.use((req, res, next) => {
 
 // Express Validator Middleware
 app.use(expressValidator({
-    errorFormatter: function(param, msg, value) {
+    errorFormatter: function (param, msg, value) {
         let namespace = param.split('.'),
-        root = namespace.shift(),
-        formParam = root;
-        while(name.length) {
+            root = namespace.shift(),
+            formParam = root;
+        while (namespace.length) {
             formParam += '[' + namespace.shift() + ']';
         }
         return {
@@ -70,10 +68,19 @@ app.use(expressValidator({
     }
 }));
 
+require('./config/passport')(passport);
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.get('*', (req, res, next) => {
+    res.locals.user = req.user || null;
+    next();
+});
+
 // Home Route
 app.get('/', (req, res) => {
     Article.find({}, (err, articles) => {
-        if(err) {
+        if (err) {
             console.log(err);
         } else {
             res.render('index', {
@@ -84,97 +91,11 @@ app.get('/', (req, res) => {
     });
 });
 
+let article_router = require('./routes/article');
+app.use('/article', article_router);
 
-// Add Route
-app.get('/article/add', (req, res) => {
-    res.render('add_article', {
-        title: 'Add a Article'
-    })
-});
-
-// Get Single Article
-app.get('/article/view/:id', (req, res) => {
-    Article.findById(req.params.id, (err, article) => {
-        if(err) {
-            console.log(err);
-            return;
-        } else {
-            res.render('article', {
-                article
-            })
-        }
-    });
-});
-
-// Add Submit POST Route
-app.post('/article/add', (req, res) => {
-    let article = Article();
-    article.title = req.body.title;
-    article.author = req.body.author;
-    article.body = req.body.body;
-
-    article.save((err) => {
-        if(err) {
-            console.log(err);
-            return;
-        } else {
-            req.flash('success', 'Article Added');
-            res.redirect('/');
-        }
-    });
-});
-
-// Load Edit Form 
-app.get('/article/edit/:id', (req, res) => {
-    Article.findById(req.params.id, (err, article) => {
-        if(err) {
-            console.log(err);
-            return;
-        } else {
-            res.render('edit_article', {
-                title: 'Edit Article Form',
-                article
-            })
-        }
-    });
-});
-
-
-// Update Submit POST Route
-app.post('/article/edit/:id', (req, res) => {
-    let article = {
-
-    }
-    article.title = req.body.title;
-    article.author = req.body.author;
-    article.body = req.body.body;
-
-    let query = { _id: req.params.id}
-
-
-    Article.update(query, article, (err) => {
-        if(err) {
-            console.log(err);
-            return;
-        } else {
-            res.redirect('/');
-        }
-    });
-});
-
-app.delete('/article/:id', (req, res) => {
-    let query = {
-        _id: req.params.id
-    }
-
-    Article.remove(query, (err) => {
-        if(err) {
-            console.log(err)
-        } else {
-            res.send('Success');
-        }
-    })
-});
+let users_router = require('./routes/users');
+app.use('/users', users_router);
 
 // Start Server
 app.listen(3000, () => {

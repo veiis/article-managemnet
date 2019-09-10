@@ -16,11 +16,23 @@ html
                         a.nav-link(href='/')
                             | Home 
                             span.sr-only (current)
-                    li.nav-item
-                        a.nav-link(href='/article/add') Add Article
+                    
+                    if user 
+                        li.nav-item
+                            a.nav-link(href='/article/add') Add Article
+                        li.nav-item
+                            a.nav-link(href='/users/logout') Log-out  
+                    else
+                        li.nav-item
+                            a.nav-link(href='/users/login') Log-in
+                        li.nav-item
+                            a.nav-link(href='/users/register') Sign-up 
         .container
             br
             != messages('message', locals)
+            if errors
+                each error, i in errors
+                    div(class="alert alert-danger") #{error.msg}
             block cont
             br
             hr
